@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🧠 MRI Brain Tumor Diagnosis System
+# MRI Brain Tumor Diagnosis System
 
 ![Brain Tumor Detection Banner](https://img.shields.io/badge/AI-Medical%20Imaging-blue?style=for-the-badge)
 ![Python](https://img.shields.io/badge/Python-3.8+-green?style=for-the-badge&logo=python)
@@ -18,33 +18,33 @@
 
 </div>
 
-## 📋 Overview
+## Overview
 
 This project harnesses the power of **deep learning** to tackle a critical medical challenge: accurately classifying brain tumors from MRI scans. Built using **transfer learning with the renowned VGG16 architecture**, it classifies tumors into four key categories: **glioma**, **meningioma**, **pituitary**, or **no tumor**. 
 
 Leveraging Python and TensorFlow, this system aims to deliver reliable, interpretable AI diagnostics that can support medical imaging workflows.
 
-## 🚀 Key Features
+## Key Features
 
-🧬 **Transfer Learning with VGG16**
+**Transfer Learning with VGG16**
 Leveraging the pre-trained VGG16 convolutional base, freezing most layers to retain powerful learned features, while fine-tuning the top layers to specialize the model for brain tumor MRI classification.
 
-🖼️ **Custom Image Augmentation**
+**Custom Image Augmentation**
 To maximize model robustness despite a limited dataset, brightness and contrast adjustments are applied on-the-fly during training, improving the model's ability to generalize.
 
-🔢 **Dynamic Data Loading & Label Encoding**
+**Dynamic Data Loading & Label Encoding**
 Images are efficiently loaded from organized folder structures, shuffled, and labels encoded dynamically for seamless batch training.
 
-⚙️ **Tailored Model Architecture**
+**Tailored Model Architecture**
 The core model stacks the VGG16 base (excluding its classification head) with flattening, dropout layers, and fully connected dense layers topped with softmax for multi-class tumor prediction.
 
-📈 **Thorough Training and Evaluation**
+**Thorough Training and Evaluation**
 Training uses the Adam optimizer and sparse categorical cross-entropy loss. The system monitors accuracy and loss trends and validates model performance via detailed classification reports, confusion matrices, and ROC/AUC analyses.
 
-💾 **Model Persistence & Practical Inference**
+**Model Persistence & Practical Inference**
 After training, the model is saved (`model.h5`) and can predict tumor type and confidence on new MRI images through an easy-to-use inference function.
 
-## 🧰 Tech Stack & Libraries
+## Tech Stack & Libraries
 
 <div align="center">
 
@@ -62,7 +62,7 @@ After training, the model is saved (`model.h5`) and can predict tumor type and c
 
 </div>
 
-## 🏗️ Model Architecture
+## Model Architecture
 
 ```
 Input MRI Image (224x224x3)
@@ -105,32 +105,32 @@ Input MRI Image (224x224x3)
     - No Tumor
 ```
 
-## 🛠️ Development Workflow
+## Development Workflow
 
-1️⃣ **Data Preparation**
+**Data Preparation**
 - Loaded MRI images from well-structured training and testing folders
 - Shuffled datasets and encoded labels dynamically
 - Applied brightness and contrast augmentations in real-time during training to boost robustness
 
-2️⃣ **Model Setup**
+**Model Setup**
 - Initialized VGG16 pretrained on ImageNet without its top layers
 - Froze most layers to preserve pretrained features; unfroze several top layers for targeted fine-tuning
 - Added custom classification layers with dropout and dense connections
 
-3️⃣ **Training**
+**Training**
 - Used a custom data generator for efficient batch processing
 - Trained the model over multiple epochs with the Adam optimizer
 - Tracked and visualized accuracy and loss metrics throughout the training cycle
 
-4️⃣ **Evaluation**
+**Evaluation**
 - Assessed model performance with classification reports and confusion matrices on test data
 - Visualized results through heatmaps and ROC/AUC curves for detailed understanding
 
-5️⃣ **Inference**
+**Inference**
 - Preprocessed new MRI images and ran predictions with confidence scoring
 - Presented results alongside input images for interpretability
 
-## 🖥️ Installation
+## Installation
 
 Prerequisites
 - Python 3.8 or higher
@@ -162,7 +162,7 @@ pip install -r requirements.txt
 jupyter notebook
 ```
 
-## 📦 Required Dependencies
+## Required Dependencies
 
 Create a `requirements.txt` file with the following packages:
 
@@ -180,7 +180,7 @@ flask>=2.0.0
 gunicorn>=20.1.0
 ```
 
-## 🚀 Usage
+## Usage
 
 Training the Model
 
@@ -234,11 +234,11 @@ def predict_tumor(image_path):
 predict_tumor('path/to/mri_scan.jpg')
 ```
 
-## ☁️ Deployment
+## Deployment
 
 The system is deployed on **Render** to provide seamless web access. The backend is built using **Flask**, serving the model and handling image uploads smoothly. 
 
-🌐 **Live Demo**
+**Live Demo**
 Explore the live application here:
 
 <div align="center">
@@ -260,7 +260,7 @@ web: gunicorn app:app
    - Configure build settings
    - Deploy automatically on push
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 MRI-Brain-Tumor-Diagnosis-System/
@@ -291,7 +291,7 @@ MRI-Brain-Tumor-Diagnosis-System/
 └── README.md                   # Project documentation
 ```
 
-## 🔬 Dataset
+## Dataset
 
 This project works with MRI brain scan datasets organized into four categories:
 - **Glioma** - A type of tumor that occurs in the brain and spinal cord
@@ -305,7 +305,7 @@ Recommended Datasets:
 
 **Important**: Ensure you have proper authorization and follow ethical guidelines when using medical data.
 
-## ⚠️ Important Disclaimer
+## Important Disclaimer
 
 > **This model is not 100% accurate and is trained on a relatively small dataset**, which may impact its performance on new, unseen cases. 
 >
@@ -313,21 +313,21 @@ Recommended Datasets:
 >
 > Always consult qualified healthcare professionals for medical decisions.
 
-## 🎯 Conclusion
+## Conclusion
 
 This MRI Brain Tumor Diagnosis System showcases how **transfer learning with VGG16** can be effectively applied to challenging medical imaging tasks, even when working with limited data. By combining strategic data augmentation, fine-tuning, and comprehensive evaluation, the system achieves promising tumor classification accuracy.
 
 This project lays a solid foundation for future AI-driven diagnostic applications and underscores deep learning's potential to empower healthcare professionals with faster, more informed decision-making.
 
-🔮 Future Directions
-- 📈 Expanding the dataset with more diverse MRI scans
-- 🏥 Including additional tumor classes and subtypes
-- 🔬 Implementing explainable AI techniques (Grad-CAM, attention maps)
-- 🏗️ Progressing toward clinical deployment and validation
-- ⚡ Exploring more advanced architectures (ResNet, EfficientNet, Vision Transformers)
-- 🌍 Multi-center validation studies
+Future Directions
+- Expanding the dataset with more diverse MRI scans
+- Including additional tumor classes and subtypes
+- Implementing explainable AI techniques (Grad-CAM, attention maps)
+- Progressing toward clinical deployment and validation
+- Exploring more advanced architectures (ResNet, EfficientNet, Vision Transformers)
+- Multi-center validation studies
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Whether it's bug fixes, feature additions, or documentation improvements, your help is appreciated.
 
@@ -339,26 +339,26 @@ How to Contribute:
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 👤 Author
+## Author
 
 **Pasindu Suraweera**
 
-- 🐙 GitHub: [@PasinduSuraweera](https://github.com/PasinduSuraweera)
-- 🌐 Live Demo: [MRI Brain Tumor Diagnosis System](https://mri-brain-tumor-diagnosis-system.onrender.com/)
+- GitHub: [@PasinduSuraweera](https://github.com/PasinduSuraweera)
+- Live Demo: [MRI Brain Tumor Diagnosis System](https://mri-brain-tumor-diagnosis-system.onrender.com/)
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-- 🏥 Medical imaging research community
-- 🤖 TensorFlow and Keras development teams
-- 🎓 ImageNet and VGG16 researchers
-- 💡 Open-source contributors
-- 👨‍⚕️ Healthcare professionals providing guidance and feedback
+- Medical imaging research community
+- TensorFlow and Keras development teams
+- ImageNet and VGG16 researchers
+- Open-source contributors
+- Healthcare professionals providing guidance and feedback
 
-## 📧 Contact
+## Contact
 
 For questions, feedback, or collaboration opportunities, please open an issue in the repository or reach out through GitHub.
 
@@ -366,12 +366,12 @@ For questions, feedback, or collaboration opportunities, please open an issue in
 
 <div align="center">
 
-⭐ **If you find this project helpful, please consider giving it a star!** ⭐
+**If you find this project helpful, please consider giving it a star!**
 
 **Made for advancing healthcare AI**
 
 ![Visitors](https://visitor-badge.laobi.icu/badge?page_id=PasinduSuraweera.MRI-Brain-Tumor-Diagnosis-System)
 
-*Building the future of medical diagnostics, one model at a time* 🚀
+*Building the future of medical diagnostics, one model at a time*
 
 </div>
