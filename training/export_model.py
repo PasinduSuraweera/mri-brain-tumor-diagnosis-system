@@ -42,6 +42,9 @@ def split_model(model, feature_layer=None):
     """
     base_pos = next(i for i, l in enumerate(model.layers) if isinstance(l, tf.keras.Model))
     base = model.layers[base_pos]
+    if any(not isinstance(l, tf.keras.layers.InputLayer) for l in model.layers[:base_pos]):
+        raise ValueError("Layers before the backbone are not exported; put preprocessing inside the "
+                         "backbone or express it with --input-scale.")
     if feature_layer:
         feat = base.get_layer(feature_layer)
     else:
@@ -95,6 +98,11 @@ def convert_body(body, quantize):
     return converter.convert()
 
 
+def _ends_with_softmax(head_layers):
+    act = getattr(head_layers[-1], "activation", None)
+    return act is not None and act.__name__ == "softmax"
+
+
 def tf_logit_grad(body, head_layers, x, cls):
     """Reference d(logit_cls)/d(feature map) computed with TensorFlow autodiff."""
     fmap = tf.convert_to_tensor(body(x, training=False))
@@ -120,6 +128,8 @@ def verify(model, body, head_layers, tflite_bytes, ops, weights, inputs):
     inp, out = interp.get_input_details()[0]["index"], interp.get_output_details()[0]["index"]
     head = Head(ops, weights)
     keras_probs = model.predict(inputs, verbose=0)
+    if not _ends_with_softmax(head_layers):
+        keras_probs = np.stack([_softmax(z) for z in keras_probs])
     worst_prob, agree, worst_grad = 0.0, 0, 0.0
     for x, ref in zip(inputs, keras_probs):
         interp.set_tensor(inp, x[None].astype(np.float32))
@@ -144,12 +154,14 @@ def verify(model, body, head_layers, tflite_bytes, ops, weights, inputs):
     return {"top1_agreement": agree / len(inputs), "max_prob_diff": worst_prob}
 
 
-def load_verify_inputs(model, verify_dir, input_scale, resize, n_random=16):
+def load_verify_inputs(model, verify_dir, input_scale, resize, n_random=16, images=None):
     from inference import open_image, resize_for_model
 
     size = model.input_shape[1]
     rng = np.random.default_rng(0)
     xs = [rng.uniform(0, 255, (size, size, 3)) for _ in range(n_random)]
+    if images is not None:
+        xs.extend(np.asarray(images, np.float32))
     if verify_dir:
         for root, _, files in os.walk(verify_dir):
             for f in sorted(files):
@@ -164,11 +176,12 @@ def load_verify_inputs(model, verify_dir, input_scale, resize, n_random=16):
 
 
 def export(model, out_dir, name, labels, input_scale, resize, quantize="int8", temperature=1.0,
-           confidence_threshold=0.7, metrics=None, description="", feature_layer=None, verify_dir=None):
+           confidence_threshold=0.7, metrics=None, description="", feature_layer=None, verify_dir=None,
+           verify_images=None):
     body, head_layers = split_model(model, feature_layer)
     ops, weights = head_to_ops(head_layers)
     tflite_bytes = convert_body(body, quantize)
-    inputs = load_verify_inputs(model, verify_dir, input_scale, resize)
+    inputs = load_verify_inputs(model, verify_dir, input_scale, resize, images=verify_images)
     check = verify(model, body, head_layers, tflite_bytes, ops, weights, inputs)
 
     os.makedirs(out_dir, exist_ok=True)
