@@ -3,359 +3,347 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="description" content="Upload a brain MRI slice to get a CNN-based tumour classification with Grad-CAM explanations.">
     <title>Brain Tumor Diagnosis</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #3b82f6;
+            --primary: #3b82f6;
             --primary-hover: #2563eb;
             --background: #0f172a;
             --card-bg: #1e293b;
-            --text-primary: #ffffff;
+            --inset-bg: #172135;
+            --text-primary: #f8fafc;
             --text-secondary: #94a3b8;
-            --border-color: #334155;
+            --border: #334155;
+            --success: #34d399;
+            --warning: #facc15;
+            --danger: #f87171;
             --shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
-            --shadow-hover: 0 15px 30px rgba(0, 0, 0, 0.4);
-            --dropzone-highlight: rgba(59, 130, 246, 0.1);
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { background: var(--background); }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
             background: linear-gradient(145deg, var(--background), #1e293b);
             color: var(--text-primary);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
+            padding: 2rem 1rem;
             line-height: 1.5;
         }
 
-        .container {
-            max-width: 40rem;
-            width: 100%;
-            padding: 0 1rem;
-        }
+        .container { max-width: 44rem; margin: 0 auto; }
 
-        .header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            letter-spacing: -0.025em;
-            color: var(--text-primary);
-        }
-
-        .header p {
-            font-size: 1.125rem;
-            color: var(--text-secondary);
-            margin-top: 0.5rem;
-        }
+        .header { text-align: center; margin-bottom: 2rem; }
+        .header h1 { font-size: 2.5rem; font-weight: 700; letter-spacing: -0.025em; }
+        .header p { font-size: 1.125rem; color: var(--text-secondary); margin-top: 0.5rem; }
 
         .card {
             background: var(--card-bg);
             border-radius: 0.75rem;
             box-shadow: var(--shadow);
             padding: 2rem;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .card:hover {
-            transform: translateY(-0.5rem);
-            box-shadow: var(--shadow-hover);
-        }
-
-        .form-group {
             margin-bottom: 1.5rem;
         }
 
-        .form-label {
-            display: block;
+        .section-title {
             font-size: 0.875rem;
-            font-weight: 500;
-            color: var(--text-secondary);
-            margin-bottom: 0.5rem;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            background: var(--border-color);
-            border: 1px solid #475569;
-            border-radius: 0.375rem;
-            color: var(--text-primary);
-            font-size: 1rem;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
-        }
-
-        .btn-primary {
-            width: 100%;
-            padding: 0.875rem 1rem;
-            background: linear-gradient(to right, var(--primary-color), #60a5fa);
-            border: none;
-            border-radius: 0.375rem;
-            color: var(--text-primary);
-            font-size: 1rem;
             font-weight: 600;
-            cursor: pointer;
-            transition: background 0.3s ease, transform 0.2s ease;
-        }
-
-        .btn-primary:hover {
-            background: linear-gradient(to right, var(--primary-hover), var(--primary-color));
-            transform: scale(1.02);
-        }
-
-        .btn-primary:disabled {
-            background: #475569;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .result-card {
-            background: #172135;
-            border: 1px solid var(--border-color);
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            margin-top: 1.5rem;
-            box-shadow: var(--shadow);
-        }
-
-        .result-card h2 {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #34d399;
-            margin-bottom: 0.5rem;
-        }
-        .dropzone.dragover {
-            border-color: var(--primary-color);
-            background: var(--dropzone-highlight);
-            transform: scale(1.01);
-        }
-
-        .result-card p {
-            font-size: 1rem;
             color: var(--text-secondary);
-            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.75rem;
         }
 
-        .result-image, .example-image {
-            max-height: 24rem;
-            width: 100%;
-            object-fit: contain;
-            border-radius: 0.5rem;
-            border: 1px solid var(--border-color);
-            margin-top: 1rem;
-        }
-
-        .note {
-            font-size: 0.9rem;
-            color: #facc15;
-            margin-top: 1rem;
-            background-color: rgba(234, 179, 8, 0.1);
-            padding: 0.75rem 1rem;
-            border-radius: 0.5rem;
-            border: 1px solid #facc15;
-        }
-
-        .dataset-link {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            margin-top: 1.25rem;
-            text-align: center;
-        }
-
-        .dataset-link a {
-            color: #60a5fa;
-            text-decoration: underline;
-        }
-
-        .example-image {
-            max-height: 200px;
-            width: auto;
-            object-fit: contain;
-            border-radius: 0.5rem;
-            border: 1px solid var(--border-color);
-            margin-top: 0.5rem;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
+        /* Upload ---------------------------------------------------------- */
         .dropzone {
-            border: 2px dashed var(--border-color);
+            border: 2px dashed #475569;
             border-radius: 0.75rem;
             padding: 2rem;
             text-align: center;
-            background: var(--border-color);
-            transition: all 0.3s ease;
+            background: var(--border);
+            transition: border-color 0.2s ease, background 0.2s ease;
             cursor: pointer;
-            position: relative;
-            margin-bottom: 1.5rem;
         }
-
-        .dropzone.dragover {
-            border-color: var(--primary-color);
-            background: var(--dropzone-highlight);
-            transform: scale(1.01);
+        .dropzone:hover, .dropzone:focus-visible, .dropzone.dragover {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.12);
+            outline: none;
         }
-
-        .dropzone p {
-            color: var(--text-secondary);
-            font-size: 1rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .dropzone .icon {
-            font-size: 2.5rem;
-            color: var(--primary-color);
-            margin-bottom: 0.5rem;
-        }
+        .dropzone .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .dropzone p { color: var(--text-secondary); }
+        .dropzone small { color: #64748b; }
 
         .file-preview {
-            display: flex;
+            display: none;
             align-items: center;
             gap: 1rem;
             margin-top: 1rem;
             padding: 1rem;
-            background: #172135;
+            background: var(--inset-bg);
             border-radius: 0.5rem;
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--border);
         }
+        .file-preview.visible { display: flex; }
+        .file-preview img { width: 64px; height: 64px; object-fit: cover; border-radius: 0.25rem; }
+        .file-preview p { flex: 1; font-size: 0.9rem; word-break: break-all; }
 
-        .file-preview img {
-            max-width: 80px;
-            max-height: 80px;
-            object-fit: contain;
-            border-radius: 0.25rem;
-        }
-
-        .file-preview p {
-            color: var(--text-primary);
-            font-size: 0.9rem;
-            flex: 1;
-        }
-
-        .file-preview .remove-file {
-            color: #f87171;
+        .link-btn {
+            background: none;
+            border: none;
+            color: var(--danger);
+            font: inherit;
             font-size: 0.9rem;
             cursor: pointer;
-            transition: color 0.2s ease;
         }
+        .link-btn:hover { text-decoration: underline; }
 
-        .file-preview .remove-file:hover {
-            color: #dc2626;
+        .inline-error {
+            display: none;
+            margin-top: 0.75rem;
+            color: var(--danger);
+            font-size: 0.9rem;
         }
+        .inline-error.visible { display: block; }
 
-        .progress-bar {
-            width: 100%;
-            height: 6px;
-            background: #475569;
-            border-radius: 3px;
-            overflow: hidden;
-            margin-top: 1rem;
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.875rem 1rem;
+            border: none;
+            border-radius: 0.375rem;
+            color: #fff;
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        .btn-primary { width: 100%; margin-top: 1.5rem; background: var(--primary); }
+        .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+        .btn-primary:disabled { background: #475569; cursor: not-allowed; }
+        .btn-secondary { background: var(--border); }
+        .btn-secondary:hover { background: #475569; }
+
+        .spinner {
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.35);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
             display: none;
         }
+        .loading .spinner { display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        .progress-bar.active {
-            display: block;
+        /* Samples / guidance -------------------------------------------- */
+        .samples { display: grid; grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); gap: 0.75rem; }
+        .sample {
+            background: var(--inset-bg);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            color: var(--text-secondary);
+            font: inherit;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        .sample:hover, .sample:focus-visible { border-color: var(--primary); outline: none; }
+        .sample img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 0.25rem; display: block; margin-bottom: 0.35rem; }
+
+        .tips { color: var(--text-secondary); font-size: 0.9rem; padding-left: 1.25rem; }
+        .tips li { margin: 0.2rem 0; }
+        .example-image { max-height: 200px; max-width: 100%; display: block; margin: 0.75rem auto 0; border-radius: 0.5rem; border: 1px solid var(--border); }
+
+        .note {
+            font-size: 0.875rem;
+            color: var(--warning);
+            background-color: rgba(234, 179, 8, 0.1);
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(250, 204, 21, 0.6);
         }
 
-        .progress-bar div {
-            height: 100%;
-            background: var(--primary-color);
-            width: 0;
-            transition: width 0.3s ease;
-        }
+        /* Results --------------------------------------------------------- */
+        .result-card { border: 1px solid var(--border); }
+        .result-header { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+        .result-header h2 { font-size: 1.6rem; font-weight: 700; }
+        .result-card.ok.tumor h2 { color: var(--warning); }
+        .result-card.ok.clear h2 { color: var(--success); }
+        .result-card.inconclusive h2 { color: var(--warning); }
+        .result-card.rejected h2, .result-card.error h2 { color: var(--danger); }
+        .confidence { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+        .messages { margin: 0.75rem 0 0 1.25rem; color: var(--text-secondary); font-size: 0.9rem; }
 
-
-        .result-card.rejected h2, .result-card.error h2 { color: #f87171; }
-        .result-card.inconclusive h2 { color: #facc15; }
-        .result-card ul { margin: 0.5rem 0 1rem 1.25rem; color: var(--text-secondary); }
-        .prob-row { display: grid; grid-template-columns: 7rem 1fr 3.5rem; gap: 0.75rem; align-items: center; margin: 0.4rem 0; font-size: 0.9rem; }
-        .prob-track { height: 0.6rem; background: #334155; border-radius: 999px; overflow: hidden; }
-        .prob-fill { height: 100%; background: var(--primary-color); }
-        .prob-row.top .prob-fill { background: #34d399; }
+        .probs { margin: 1.25rem 0; }
+        .prob-row { display: grid; grid-template-columns: 7rem 1fr 3.5rem; gap: 0.75rem; align-items: center; margin: 0.45rem 0; font-size: 0.9rem; }
+        .prob-track { height: 0.6rem; background: var(--border); border-radius: 999px; overflow: hidden; }
+        .prob-fill { height: 100%; background: #64748b; border-radius: 999px; }
+        .prob-row.top .prob-fill { background: var(--primary); }
+        .prob-row.top span:first-child { font-weight: 600; }
         .prob-value { text-align: right; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
         .image-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-        .image-pair figcaption { font-size: 0.8rem; color: var(--text-secondary); text-align: center; margin-top: 0.25rem; }
+        .image-pair figure { position: relative; }
+        .image-pair img { width: 100%; aspect-ratio: 1; object-fit: contain; background: #000; border-radius: 0.5rem; border: 1px solid var(--border); display: block; }
+        .image-pair .overlay { position: absolute; top: 0; left: 0; }
+        .image-pair figcaption { font-size: 0.8rem; color: var(--text-secondary); text-align: center; margin-top: 0.35rem; }
+        .slider-row { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.75rem; font-size: 0.85rem; color: var(--text-secondary); }
+        .slider-row input { flex: 1; accent-color: var(--primary); }
+
+        .actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.25rem; }
+        .actions .btn { flex: 1; min-width: 10rem; }
+        .result-card .note { margin-top: 1.25rem; }
+
+        /* About ----------------------------------------------------------- */
+        details summary { cursor: pointer; font-weight: 600; }
+        details[open] summary { margin-bottom: 1rem; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
+        .stat { background: var(--inset-bg); border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.75rem; }
+        .stat strong { display: block; font-size: 1.35rem; }
+        .stat span { color: var(--text-secondary); font-size: 0.8rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.875rem; font-variant-numeric: tabular-nums; }
+        th, td { padding: 0.45rem 0.5rem; border-bottom: 1px solid var(--border); text-align: right; }
+        th:first-child, td:first-child { text-align: left; }
+        th { color: var(--text-secondary); font-weight: 500; }
+        .caveats { margin: 1rem 0 0 1.25rem; color: var(--text-secondary); font-size: 0.85rem; }
+
+        footer { text-align: center; color: #64748b; font-size: 0.85rem; margin-top: 1rem; }
+        footer a, .card a { color: #60a5fa; }
+
+        .print-only { display: none; }
 
         @media (max-width: 640px) {
-            .header h1 {
-                font-size: 2rem;
-            }
+            .header h1 { font-size: 2rem; }
+            .header p { font-size: 1rem; }
+            .card { padding: 1.25rem; }
+            .dropzone { padding: 1.5rem 1rem; }
+            .prob-row { grid-template-columns: 6rem 1fr 3.25rem; }
+        }
 
-            .header p {
-                font-size: 1rem;
-            }
-
-            .card {
-                padding: 1.5rem;
-            }
-
-            .dropzone {
-                padding: 1.5rem;
-            }
+        /* Printable report ------------------------------------------------ */
+        @media print {
+            html, body { background: #fff; color: #000; padding: 0; }
+            .card { box-shadow: none; border: 1px solid #ccc; background: #fff; break-inside: avoid; }
+            .no-print, .upload-card, .about-card, .actions, .slider-row, footer { display: none !important; }
+            .print-only { display: block; }
+            .header p, .confidence, .messages, .prob-value, .image-pair figcaption { color: #333; }
+            .result-card h2 { color: #000 !important; }
+            .prob-track { background: #e5e7eb; }
+            .prob-fill, .prob-row.top .prob-fill { background: #2563eb; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .image-pair img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .note { color: #000; background: #fff; border-color: #000; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
+    <main class="container">
+        <header class="header">
             <h1>Brain Tumor Diagnosis System</h1>
-            <p>Upload an MRI scan for accurate brain tumor classification and detailed analysis using a Convolutional Neural Network (CNN)</p>
-        </div>
+            <p>Upload an MRI scan for brain tumor classification with a Convolutional Neural Network (CNN), with a heatmap showing what the model looked at.</p>
+        </header>
 
-        <!-- File Upload Form -->
-        <div class="card">
-            <form id="upload-form" method="POST" enctype="multipart/form-data">
-                <div class="form-group">
-                    <label for="file" class="form-label">Select MRI Image</label>
-                    <div class="dropzone" id="dropzone">
-                        <div class="icon">📤</div>
-                        <p>Drag & Drop your MRI image here or click to select</p>
-                        <input type="file" class="form-control" id="file" name="file" accept="image/*" required style="display: none;">
-                    </div>
-                    <div class="file-preview" id="file-preview" style="display: none;">
-                        <img id="preview-image" src="" alt="File Preview">
-                        <p id="file-name"></p>
-                        <span class="remove-file" id="remove-file">Remove</span>
-                    </div>
+        <section class="card upload-card" aria-labelledby="upload-title">
+            <h2 class="section-title" id="upload-title">Select MRI image</h2>
+            <form id="upload-form" novalidate>
+                <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-describedby="dropzone-help">
+                    <div class="icon" aria-hidden="true">📤</div>
+                    <p>Drag & drop your MRI image here, or click to select</p>
+                    <small id="dropzone-help">JPEG, PNG, WebP or BMP · up to {{ max_upload_mb }} MB</small>
                 </div>
-                <button type="submit" class="btn-primary" id="submit-btn" disabled>Upload & Analyze</button>
+                <input type="file" id="file" name="file" accept="image/jpeg,image/png,image/webp,image/bmp" hidden>
+                <div class="file-preview" id="file-preview">
+                    <img id="preview-image" src="" alt="Selected image preview">
+                    <p id="file-name"></p>
+                    <button type="button" class="link-btn" id="remove-file">Remove</button>
+                </div>
+                <p class="inline-error" id="inline-error" role="alert"></p>
+                <button type="submit" class="btn btn-primary" id="submit-btn" disabled>
+                    <span class="spinner" aria-hidden="true"></span>
+                    <span id="submit-label">Upload & Analyze</span>
+                </button>
             </form>
 
-            <div class="note">
-                ⚠️ This system is not 100% accurate and should not be used for official diagnosis. It is trained on the following four types: <strong>glioma</strong>, <strong>meningioma</strong>, <strong>pituitary</strong>, and having <strong>no tumor</strong>.
+            {% if samples %}
+            <h2 class="section-title" style="margin-top:1.75rem;">Or try a sample scan</h2>
+            <div class="samples">
+                {% for s in samples %}
+                <button type="button" class="sample" data-src="{{ url_for('static', filename='samples/' ~ s.file) }}" data-name="{{ s.file }}">
+                    <img src="{{ url_for('static', filename='samples/' ~ s.file) }}" alt="{{ s.label }} sample MRI" loading="lazy">
+                    {{ s.label }}
+                </button>
+                {% endfor %}
             </div>
+            {% endif %}
 
-            <div class="dataset-link">
-                Dataset Source: <a href="https://www.kaggle.com/datasets/masoudnickparvar/brain-tumor-mri-dataset" target="_blank">Kaggle - Brain Tumor MRI Dataset</a>
-            </div>
+            <h2 class="section-title" style="margin-top:1.75rem;">What to upload</h2>
+            <ul class="tips">
+                <li>A single 2D <strong>axial</strong> brain MRI slice (T1, T1 contrast or T2), exported as an image.</li>
+                <li>Uncropped, with the black background around the head, and without annotations or colour overlays.</li>
+                <li>The model only knows four classes: <strong>glioma</strong>, <strong>meningioma</strong>, <strong>pituitary</strong> tumor and <strong>no tumor</strong>.</li>
+            </ul>
+            {% if not samples %}
+            <img src="https://eyewiki.org/w/images/e/ed/PituitaryAdenoma.JPG" alt="Example of a brain MRI slice" class="example-image" loading="lazy" onerror="this.remove()">
+            {% endif %}
+        </section>
 
-            <div class="form-group">
-                <label class="form-label" style="margin-top:1.5rem;">Example MRI Image (for reference)</label>
-                <img src="https://eyewiki.org/w/images/e/ed/PituitaryAdenoma.JPG" alt="Example MRI" class="example-image">
-            </div>
+        <section id="result" aria-live="polite"></section>
+
+        <div class="note no-print" style="margin-bottom:1.5rem;">
+            ⚠️ This system is a research and educational tool. It is not 100% accurate and must not be used for diagnosis.
+            Always consult a qualified medical professional.
         </div>
 
-        <div id="result"></div>
-    </div>
+        {% set m = meta.metrics %}
+        <section class="card about-card">
+            <details>
+                <summary>About the model</summary>
+                <p style="color:var(--text-secondary); margin-bottom:1rem;">{{ meta.description or meta.name }}</p>
+                {% if m and m.test_accuracy %}
+                <div class="stats">
+                    <div class="stat"><strong>{{ '%.1f' % (m.test_accuracy * 100) }}%</strong><span>Test accuracy</span></div>
+                    {% if m.macro_f1 %}<div class="stat"><strong>{{ '%.3f' % m.macro_f1 }}</strong><span>Macro F1</span></div>{% endif %}
+                    {% if m.macro_auc_ovr %}<div class="stat"><strong>{{ '%.3f' % m.macro_auc_ovr }}</strong><span>Macro ROC AUC</span></div>{% endif %}
+                    {% if m.ece_calibrated is defined %}<div class="stat"><strong>{{ '%.3f' % m.ece_calibrated }}</strong><span>Calibration error (ECE)</span></div>{% endif %}
+                </div>
+                {% endif %}
+                {% if m and m.per_class %}
+                <table>
+                    <thead><tr><th>Class</th><th>Precision</th><th>Recall</th><th>F1</th><th>Test images</th></tr></thead>
+                    <tbody>
+                    {% for label in meta.labels %}{% set c = m.per_class[label] %}
+                        <tr><td>{{ meta.display_names[loop.index0] }}</td><td>{{ '%.2f' % c.precision }}</td><td>{{ '%.2f' % c.recall }}</td><td>{{ '%.2f' % c.f1 }}</td><td>{{ c.support }}</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+                <ul class="caveats">
+                    {% if m and m.source %}<li>Evaluated on: {{ m.source }}.</li>{% endif %}
+                    {% for c in (m.caveats if m and m.caveats else []) %}<li>{{ c }}</li>{% endfor %}
+                    <li>Predictions below {{ '%.0f' % (meta.confidence_threshold * 100) }}% confidence are reported as inconclusive.</li>
+                    <li>Grad-CAM heatmaps show which regions influenced the prediction. They are not a tumour segmentation.</li>
+                </ul>
+            </details>
+        </section>
+
+        <footer>
+            Dataset: <a href="https://www.kaggle.com/datasets/masoudnickparvar/brain-tumor-mri-dataset" target="_blank" rel="noopener">Kaggle – Brain Tumor MRI Dataset</a>
+            · <a href="https://github.com/PasinduSuraweera/mri-brain-tumor-diagnosis-system" target="_blank" rel="noopener">Source code</a>
+        </footer>
+    </main>
 
     <script>
+        const MAX_BYTES = {{ max_upload_mb }} * 1024 * 1024;
+        const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp', 'image/bmp'];
+
         const dropzone = document.getElementById('dropzone');
         const fileInput = document.getElementById('file');
         const filePreview = document.getElementById('file-preview');
@@ -363,119 +351,196 @@
         const fileName = document.getElementById('file-name');
         const removeFile = document.getElementById('remove-file');
         const submitBtn = document.getElementById('submit-btn');
+        const submitLabel = document.getElementById('submit-label');
+        const inlineError = document.getElementById('inline-error');
         const uploadForm = document.getElementById('upload-form');
-
-        // Handle file selection (via click or drag-and-drop)
-        function handleFileSelect(e) {
-            const file = (e.dataTransfer ? e.dataTransfer.files : fileInput.files)[0];
-            if (file && file.type.startsWith('image/')) {
-                fileName.textContent = file.name;
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    previewImage.src = e.target.result;
-                    filePreview.style.display = 'flex';
-                    submitBtn.disabled = false;
-                };
-                reader.readAsDataURL(file);
-            } else {
-                resetFileInput();
-            }
-        }
-
-        // Reset file input and UI
-        function resetFileInput() {
-            fileInput.value = '';
-            filePreview.style.display = 'none';
-            submitBtn.disabled = true;
-        }
-
-        // Drag-and-drop events
-        dropzone.addEventListener('click', () => fileInput.click());
-        dropzone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropzone.classList.add('dragover');
-        });
-        dropzone.addEventListener('dragleave', () => {
-            dropzone.classList.remove('dragover');
-        });
-        dropzone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropzone.classList.remove('dragover');
-            fileInput.files = e.dataTransfer.files;
-            handleFileSelect(e);
-        });
-
-        // File input change event
-        fileInput.addEventListener('change', handleFileSelect);
-
-        // Remove file
-        removeFile.addEventListener('click', resetFileInput);
-
         const resultBox = document.getElementById('result');
+
+        let selectedFile = null;
 
         function escapeHtml(text) {
             const div = document.createElement('div');
-            div.textContent = text;
+            div.textContent = text == null ? '' : String(text);
             return div.innerHTML;
         }
 
-        function renderResult(data) {
-            let html;
-            if (data.status === 'ok' || data.status === 'inconclusive') {
-                const p = data.prediction;
-                const title = data.status === 'inconclusive' ? 'Inconclusive' : (p.has_tumor ? `Tumor: ${p.display}` : 'No Tumor');
-                const bars = p.probabilities.map((c) => `
-                    <div class="prob-row ${c.label === p.label ? 'top' : ''}">
-                        <span>${escapeHtml(c.display)}</span>
-                        <div class="prob-track"><div class="prob-fill" style="width:${(c.probability * 100).toFixed(1)}%"></div></div>
-                        <span class="prob-value">${(c.probability * 100).toFixed(1)}%</span>
-                    </div>`).join('');
-                const notes = [data.message, ...(data.warnings || [])].filter(Boolean);
-                html = `
-                    <div class="result-card ${data.status}">
-                        <h2>${escapeHtml(title)}</h2>
-                        <p>Confidence: ${(p.confidence * 100).toFixed(2)}%</p>
-                        ${notes.length ? `<ul>${notes.map((n) => `<li>${escapeHtml(n)}</li>`).join('')}</ul>` : ''}
-                        ${bars}
-                        <div class="image-pair">
-                            <figure><img src="${previewImage.src}" class="result-image" alt="Uploaded MRI"><figcaption>Uploaded scan</figcaption></figure>
-                            <figure><img src="${data.heatmap}" class="result-image" alt="Grad-CAM heatmap"><figcaption>Grad-CAM: regions that drove the prediction</figcaption></figure>
-                        </div>
-                    </div>`;
-            } else {
-                const reasons = data.reasons || [];
-                html = `
-                    <div class="result-card ${data.status === 'rejected' ? 'rejected' : 'error'}">
-                        <h2>${data.status === 'rejected' ? 'Not an MRI scan?' : 'Something went wrong'}</h2>
-                        <p>${escapeHtml(data.message || 'The image could not be analysed.')}</p>
-                        ${reasons.length ? `<ul>${reasons.map((r) => `<li>${escapeHtml(r)}</li>`).join('')}</ul>` : ''}
-                    </div>`;
+        function showError(message) {
+            inlineError.textContent = message;
+            inlineError.classList.toggle('visible', Boolean(message));
+        }
+
+        function setFile(file) {
+            showError('');
+            if (!file) return;
+            if (!ACCEPTED.includes(file.type)) {
+                showError('Please choose a JPEG, PNG, WebP or BMP image.');
+                return;
             }
-            resultBox.innerHTML = html;
+            if (file.size > MAX_BYTES) {
+                showError(`That file is ${(file.size / 1048576).toFixed(1)} MB. The maximum is {{ max_upload_mb }} MB.`);
+                return;
+            }
+            selectedFile = file;
+            fileName.textContent = file.name;
+            if (previewImage.src.startsWith('blob:')) URL.revokeObjectURL(previewImage.src);
+            previewImage.src = URL.createObjectURL(file);
+            filePreview.classList.add('visible');
+            submitBtn.disabled = false;
+        }
+
+        function resetFile() {
+            selectedFile = null;
+            fileInput.value = '';
+            filePreview.classList.remove('visible');
+            submitBtn.disabled = true;
+            showError('');
+        }
+
+        // Drop zone: click, keyboard and drag & drop
+        dropzone.addEventListener('click', () => fileInput.click());
+        dropzone.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                fileInput.click();
+            }
+        });
+        ['dragenter', 'dragover'].forEach((type) => dropzone.addEventListener(type, (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        }));
+        ['dragleave', 'drop'].forEach((type) => dropzone.addEventListener(type, () => dropzone.classList.remove('dragover')));
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            setFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', () => setFile(fileInput.files[0]));
+        removeFile.addEventListener('click', resetFile);
+
+        // Sample scans
+        document.querySelectorAll('.sample').forEach((btn) => btn.addEventListener('click', async () => {
+            try {
+                const response = await fetch(btn.dataset.src);
+                const blob = await response.blob();
+                setFile(new File([blob], btn.dataset.name, { type: blob.type }));
+                uploadForm.requestSubmit();
+            } catch {
+                showError('Could not load the sample image.');
+            }
+        }));
+
+        function setLoading(loading) {
+            submitBtn.classList.toggle('loading', loading);
+            submitBtn.disabled = loading || !selectedFile;
+            submitLabel.textContent = loading ? 'Analyzing…' : 'Upload & Analyze';
+        }
+
+        const pct = (x) => `${(x * 100).toFixed(1)}%`;
+
+        function resultTemplate(data) {
+            const disclaimer = `<div class="note">⚠️ This result is generated by an AI model for research and educational purposes only.
+                It is not a medical diagnosis. Please consult a qualified radiologist or physician.</div>`;
+            const stamp = `<p class="print-only" style="margin-bottom:0.75rem;">File: ${escapeHtml(selectedFile ? selectedFile.name : '')}
+                · Generated ${escapeHtml(new Date().toLocaleString())} · Model: ${escapeHtml(data.model ? data.model.name : '')}</p>`;
+
+            if (data.status !== 'ok' && data.status !== 'inconclusive') {
+                const rejected = data.status === 'rejected';
+                const reasons = data.reasons || [];
+                return `<div class="card result-card ${rejected ? 'rejected' : 'error'}">
+                    <div class="result-header"><h2>${rejected ? 'Not an MRI scan?' : 'Something went wrong'}</h2></div>
+                    <p class="confidence">${escapeHtml(data.message || 'The image could not be analysed.')}</p>
+                    ${reasons.length ? `<ul class="messages">${reasons.map((r) => `<li>${escapeHtml(r)}</li>`).join('')}</ul>` : ''}
+                    <div class="actions"><button type="button" class="btn btn-secondary" data-action="reset">Try another image</button></div>
+                </div>`;
+            }
+
+            const p = data.prediction;
+            const inconclusive = data.status === 'inconclusive';
+            const title = inconclusive ? 'Inconclusive' : (p.has_tumor ? `Tumor detected: ${p.display}` : 'No tumor detected');
+            const kind = p.has_tumor ? 'tumor' : 'clear';
+            const messages = [data.message, ...(data.warnings || [])].filter(Boolean);
+            const bars = p.probabilities.map((c) => `
+                <div class="prob-row ${c.label === p.label ? 'top' : ''}">
+                    <span>${escapeHtml(c.display)}</span>
+                    <div class="prob-track" role="progressbar" aria-label="${escapeHtml(c.display)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${(c.probability * 100).toFixed(1)}">
+                        <div class="prob-fill" style="width:${(c.probability * 100).toFixed(1)}%"></div>
+                    </div>
+                    <span class="prob-value">${pct(c.probability)}</span>
+                </div>`).join('');
+            const heatmapNote = p.has_tumor
+                ? 'Warmer colours mark regions that most influenced the prediction.'
+                : 'For "no tumor" results the heatmap shows the regions that supported that class, not a lesion.';
+
+            return `<div class="card result-card ${data.status} ${kind}">
+                ${stamp}
+                <div class="result-header">
+                    <h2>${escapeHtml(title)}</h2>
+                    <span class="confidence">Top score: ${escapeHtml(p.display)} · ${pct(p.confidence)}</span>
+                </div>
+                ${messages.length ? `<ul class="messages">${messages.map((m) => `<li>${escapeHtml(m)}</li>`).join('')}</ul>` : ''}
+                <div class="probs">${bars}</div>
+                <div class="image-pair">
+                    <figure>
+                        <img src="${previewImage.src}" alt="Uploaded MRI scan">
+                        <figcaption>Uploaded scan</figcaption>
+                    </figure>
+                    <figure>
+                        <img src="${previewImage.src}" alt="">
+                        <img class="overlay" id="heatmap-img" src="${data.heatmap}" alt="Grad-CAM heatmap over the scan">
+                        <figcaption>Grad-CAM explanation</figcaption>
+                    </figure>
+                </div>
+                <div class="slider-row">
+                    <label for="heatmap-opacity">Heatmap opacity</label>
+                    <input type="range" id="heatmap-opacity" min="0" max="100" value="100">
+                </div>
+                <p class="messages" style="margin-left:0;">${heatmapNote}</p>
+                <div class="actions">
+                    <button type="button" class="btn btn-secondary" data-action="print">Download report (PDF)</button>
+                    <button type="button" class="btn btn-secondary" data-action="reset">Analyze another image</button>
+                </div>
+                ${disclaimer}
+            </div>`;
+        }
+
+        function renderResult(data) {
+            resultBox.innerHTML = resultTemplate(data);
+            const slider = document.getElementById('heatmap-opacity');
+            if (slider) {
+                slider.addEventListener('input', () => {
+                    document.getElementById('heatmap-img').style.opacity = slider.value / 100;
+                });
+            }
+            resultBox.querySelectorAll('[data-action]').forEach((btn) => btn.addEventListener('click', () => {
+                if (btn.dataset.action === 'print') {
+                    window.print();
+                } else {
+                    resultBox.innerHTML = '';
+                    resetFile();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            }));
             resultBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         uploadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!fileInput.files[0]) return;
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Analyzing…';
+            if (!selectedFile) return;
+            setLoading(true);
             const body = new FormData();
-            body.append('file', fileInput.files[0]);
+            body.append('file', selectedFile);
             try {
                 const response = await fetch('/api/predict', { method: 'POST', body });
                 let data;
                 try {
                     data = await response.json();
                 } catch {
-                    data = { status: 'error', message: `Server error (${response.status}). Please try again.` };
+                    data = { status: 'error', message: `Server error (${response.status}). The server may be waking up; please try again in a moment.` };
                 }
                 renderResult(data);
             } catch {
                 renderResult({ status: 'error', message: 'Could not reach the server. Please check your connection and try again.' });
             } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Upload & Analyze';
+                setLoading(false);
             }
         });
     </script>
