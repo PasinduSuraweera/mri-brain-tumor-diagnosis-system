@@ -189,7 +189,10 @@ def nll(logits, y, t):
 
 def fit_temperature(logits, y):
     grid = np.exp(np.linspace(np.log(0.25), np.log(10), 400))
-    return float(grid[np.argmin([nll(logits, y, t) for t in grid])])
+    t = float(grid[np.argmin([nll(logits, y, t) for t in grid])])
+    if t in (grid[0], grid[-1]):
+        print(f"WARNING: temperature hit the search bound ({t:.2f}); the validation set may be too small.")
+    return t
 
 
 def expected_calibration_error(probs, y, bins=15):
@@ -283,6 +286,8 @@ def main():
     p.add_argument("--dedup-threshold", type=int, default=6,
                    help="max differing bits (of 256) for two images to count as duplicates; -1 disables")
     p.add_argument("--confidence-threshold", type=float, default=0.7)
+    p.add_argument("--quantize", choices=["float16", "int8", "none"], default="float16",
+                   help="export precision; float16 is near-lossless, int8 is smaller but less faithful")
     p.add_argument("--weights", default="imagenet", help="'imagenet' or 'none' (for quick smoke tests)")
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--run-dir", default=None, help="where checkpoints, metrics and plots go")
@@ -380,7 +385,8 @@ def main():
 
     rng = np.random.default_rng(a.seed)
     sample = test_x[rng.choice(len(test_x), size=min(32, len(test_x)), replace=False)]
-    export(model, export_dir, a.arch, classes, input_scale=1.0, resize="bilinear", temperature=temperature,
+    export(model, export_dir, a.arch, classes, input_scale=1.0, resize="bilinear", quantize=a.quantize,
+           temperature=temperature,
            confidence_threshold=a.confidence_threshold, metrics=metrics,
            description=f"{a.arch} ({a.image_size}x{a.image_size} input) trained with training/train.py",
            verify_images=sample)

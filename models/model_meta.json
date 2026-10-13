@@ -1,6 +1,6 @@
 {
   "name": "vgg16",
-  "description": "VGG16 transfer-learning model (128x128 input) trained in CNN_brain_tumor_detection.ipynb",
+  "description": "VGG16 transfer-learning model (128x128 input) trained in the original CNN_brain_tumor_detection.ipynb (see git history)",
   "body": "vgg16_body.tflite",
   "head_weights": "vgg16_head.npz",
   "head_ops": [
@@ -46,7 +46,7 @@
     "max_prob_diff": 0.029447585344314575
   },
   "metrics": {
-    "source": "CNN_brain_tumor_detection.ipynb, Kaggle 'Brain Tumor MRI Dataset' test split (1,311 images)",
+    "source": "original CNN_brain_tumor_detection.ipynb (see git history), Kaggle 'Brain Tumor MRI Dataset' test split (1,311 images)",
     "caveats": [
       "Test images had random brightness/contrast augmentation applied during evaluation.",
       "Class order was taken from os.listdir() in the notebook; the mapping below assumes alphabetical order.",

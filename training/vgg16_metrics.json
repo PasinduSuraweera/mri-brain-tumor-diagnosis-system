@@ -1,5 +1,5 @@
 {
-  "source": "CNN_brain_tumor_detection.ipynb, Kaggle 'Brain Tumor MRI Dataset' test split (1,311 images)",
+  "source": "original CNN_brain_tumor_detection.ipynb (see git history), Kaggle 'Brain Tumor MRI Dataset' test split (1,311 images)",
   "caveats": [
     "Test images had random brightness/contrast augmentation applied during evaluation.",
     "Class order was taken from os.listdir() in the notebook; the mapping below assumes alphabetical order.",

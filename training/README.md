@@ -7,17 +7,26 @@ so it never needs TensorFlow at runtime. This folder holds everything that does.
 |------|---------|
 | `train.py` | Reproducible training pipeline (de-duplication, validation split, augmentation, fine-tuning, calibration, metrics, export) |
 | `export_model.py` | Converts any compatible Keras model into the web-app format and verifies it |
-| `vgg16_metrics.json` | Test metrics of the original VGG16 model from `CNN_brain_tumor_detection.ipynb` |
+| `vgg16_metrics.json` | Test metrics of the original VGG16 model (from the first version of the notebook) |
 | `requirements.txt` | Training dependencies (TensorFlow etc.) |
+| `../CNN_brain_tumor_detection.ipynb` | One-click Colab notebook that runs the whole pipeline |
 
 ## Retrain on Google Colab (GPU)
 
-1. Put the [Kaggle Brain Tumor MRI Dataset](https://www.kaggle.com/datasets/masoudnickparvar/brain-tumor-mri-dataset)
-   in Drive as `MRI Images/Training/<class>/…` and `MRI Images/Testing/<class>/…`.
-2. In a GPU runtime:
+The easiest way is the notebook
+[`CNN_brain_tumor_detection.ipynb`](../CNN_brain_tumor_detection.ipynb)
+([open in Colab](https://colab.research.google.com/github/PasinduSuraweera/mri-brain-tumor-diagnosis-system/blob/upgrade-app/CNN_brain_tumor_detection.ipynb)).
+Select a T4 GPU runtime and choose *Run all*. It downloads the
+[Kaggle Brain Tumor MRI Dataset](https://www.kaggle.com/datasets/masoudnickparvar/brain-tumor-mri-dataset)
+automatically (or uses your Drive copy), trains, compares the result with the old VGG16 model, checks the
+export through the web app's own inference code (including how many real scans the input checks would wrongly
+reject), adds sample scans, backs everything up to Drive and can push the new model to GitHub.
+
+Or run the script directly in a GPU runtime (dataset in Drive as `MRI Images/Training/<class>/…` and
+`MRI Images/Testing/<class>/…`):
 
 ```bash
-!git clone https://github.com/PasinduSuraweera/mri-brain-tumor-diagnosis-system.git
+!git clone -b upgrade-app https://github.com/PasinduSuraweera/mri-brain-tumor-diagnosis-system.git   # use main after merging
 %cd mri-brain-tumor-diagnosis-system
 !pip install -q ai-edge-litert==2.3.0
 !python training/train.py --data-dir "/content/drive/MyDrive/MRI Images" --export-dir models
@@ -27,7 +36,7 @@ so it never needs TensorFlow at runtime. This folder holds everything that does.
 automatically. Commit the new `models/*` files plus `training/runs/<run>/metrics.json` if you want to keep it.
 Omit `--export-dir` to write the export to `training/runs/<run>/export/` and compare first.
 
-Useful options: `--arch efficientnetv2b2|convnext_tiny`, `--image-size 260`, `--finetune-epochs 40`,
+Useful options: `--arch efficientnetv2b2|convnext_tiny`, `--quantize int8` (smaller, less faithful), `--image-size 260`, `--finetune-epochs 40`,
 `--dedup-threshold -1` (disable de-duplication), `--confidence-threshold 0.8`.
 
 ## What the pipeline does
@@ -43,7 +52,7 @@ Useful options: `--arch efficientnetv2b2|convnext_tiny`, `--image-size 260`, `--
    macro AUC and confusion matrix.
 7. **Calibration:** temperature scaling fit on the validation split, so a "90%" score really means
    about 90% accuracy. Expected calibration error (ECE) is reported before and after.
-8. **Export** to the web-app format, verified against the Keras model (predictions and Grad-CAM gradients).
+8. **Export** to the web-app format (float16 LiteRT by default), verified against the Keras model (predictions and Grad-CAM gradients).
 
 Plots (`training_curves.png`, `confusion_matrix.png`) and `metrics.json` are written to the run folder.
 

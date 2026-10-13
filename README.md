@@ -63,7 +63,7 @@ Drag & drop or click to upload, a background analysis with a loading state, a pr
 
 ## Model Architecture
 
-The deployed model is the VGG16 transfer-learning model trained in `CNN_brain_tumor_detection.ipynb`:
+The deployed model is the VGG16 transfer-learning model trained in the original version of `CNN_brain_tumor_detection.ipynb` (see git history):
 
 ```
 Input MRI image (128x128x3, pixels scaled to 0-1)
@@ -128,7 +128,9 @@ one-click examples on the home page (see `static/samples/README.md`).
 
 **Retrain the model**
 
-See [training/README.md](training/README.md). On Google Colab:
+Open [`CNN_brain_tumor_detection.ipynb`](https://colab.research.google.com/github/PasinduSuraweera/mri-brain-tumor-diagnosis-system/blob/upgrade-app/CNN_brain_tumor_detection.ipynb)
+in Colab, choose a T4 GPU runtime and *Run all*. The notebook downloads the dataset, trains, evaluates, checks the
+export and can push the new model. See [training/README.md](training/README.md) for details, or run the script directly:
 
 ```bash
 python training/train.py --data-dir "/content/drive/MyDrive/MRI Images" --export-dir models
@@ -168,7 +170,7 @@ mri-brain-tumor-diagnosis-system/
 │   ├── vgg16_metrics.json        # Metrics of the original notebook model
 │   ├── requirements.txt          # Training dependencies
 │   └── README.md
-├── CNN_brain_tumor_detection.ipynb  # Original training notebook
+├── CNN_brain_tumor_detection.ipynb  # One-click Colab training notebook
 ├── requirements.txt              # Web app dependencies
 ├── render.yaml / Procfile        # Deployment config
 └── README.md

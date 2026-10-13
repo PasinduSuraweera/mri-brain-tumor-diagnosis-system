@@ -151,6 +151,9 @@ def verify(model, body, head_layers, tflite_bytes, ops, weights, inputs):
           f"max relative grad error {worst_grad:.2e}")
     if worst_grad > 1e-3:
         raise RuntimeError("NumPy head gradients do not match TensorFlow")
+    if agree < len(inputs) * 0.97 or worst_prob > 0.1:
+        print("WARNING: the exported model differs noticeably from the Keras model; "
+              "consider --quantize float16 or none.")
     return {"top1_agreement": agree / len(inputs), "max_prob_diff": worst_prob}
 
 
