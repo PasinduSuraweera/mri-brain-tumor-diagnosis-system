@@ -1,65 +1,110 @@
-from flask import Flask, render_template, request, send_from_directory
-from tensorflow.keras.models import load_model
-import tensorflow.keras.preprocessing.image
-import numpy as np
 import os
 
-# Initialize Flask app
+from flask import Flask, jsonify, render_template, request
+from PIL import Image
+from werkzeug.exceptions import RequestEntityTooLarge
+
+from inference import Classifier, check_input, heatmap_overlay, open_image, thumbnail, to_data_url
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_DIR = os.environ.get("MODEL_DIR", os.path.join(BASE_DIR, "models"))
+SAMPLES_DIR = os.path.join(BASE_DIR, "static", "samples")
+MAX_UPLOAD_MB = 10
+IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".bmp")
+
+# Refuse "decompression bomb" images (tiny files that expand to huge bitmaps).
+Image.MAX_IMAGE_PIXELS = 25_000_000
+
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_MB * 1024 * 1024
 
-# Load the trained model
-model = load_model('models/model.h5')
+classifier = Classifier(MODEL_DIR)
 
-# Class labels
-class_labels = ['glioma', 'meningioma', 'notumor', 'pituitary']
 
-# Define the uploads folder
-UPLOAD_FOLDER = './uploads'
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+def list_samples():
+    """Example scans shipped in static/samples, e.g. 'glioma_1.jpg'."""
+    if not os.path.isdir(SAMPLES_DIR):
+        return []
+    samples = []
+    for name in sorted(os.listdir(SAMPLES_DIR)):
+        if name.lower().endswith(IMAGE_EXTENSIONS):
+            label = name.rsplit(".", 1)[0].split("_")[0].lower()
+            samples.append({
+                "file": name,
+                "label": classifier.display_names[classifier.labels.index(label)]
+                if label in classifier.labels else "Sample",
+            })
+    return samples
 
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Helper function to predict tumor type
-def predict_tumor(image_path):
-    IMAGE_SIZE = 128
-    img = tensorflow.keras.preprocessing.image.load_img(image_path, target_size=(IMAGE_SIZE, IMAGE_SIZE))
-    img_array = tensorflow.keras.preprocessing.image.img_to_array(img) / 255.0  # Normalize pixel values
-    img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
+def error(message, status, **extra):
+    return jsonify({"status": "error", "message": message, **extra}), status
 
-    predictions = model.predict(img_array)
-    predicted_class_index = np.argmax(predictions, axis=1)[0]
-    confidence_score = np.max(predictions, axis=1)[0]
 
-    if class_labels[predicted_class_index] == 'notumor':
-        return "No Tumor", confidence_score
-    else:
-        return f"Tumor: {class_labels[predicted_class_index]}", confidence_score
+@app.after_request
+def security_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["X-Frame-Options"] = "DENY"
+    return response
 
-# Route for the main page (index.html)
-@app.route('/', methods=['GET', 'POST'])
+
+@app.errorhandler(RequestEntityTooLarge)
+def too_large(_):
+    return error(f"The file is too large. The maximum upload size is {MAX_UPLOAD_MB} MB.", 413)
+
+
+@app.route("/")
 def index():
-    if request.method == 'POST':
-        # Handle file upload
-        file = request.files['file']
-        if file:
-            # Save the file
-            file_location = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-            file.save(file_location)
+    return render_template("index.html", meta=classifier.meta, samples=list_samples(),
+                           max_upload_mb=MAX_UPLOAD_MB)
 
-            # Predict the tumor
-            result, confidence = predict_tumor(file_location)
 
-            # Return result along with image path for display
-            return render_template('index.html', result=result, confidence=f"{confidence*100:.2f}%", file_path=f'/uploads/{file.filename}')
+@app.route("/healthz")
+def healthz():
+    return {"status": "ok", "model": classifier.meta["name"]}
 
-    return render_template('index.html', result=None)
 
-# Route to serve uploaded files
-@app.route('/uploads/<filename>')
-def get_uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+@app.route("/api/predict", methods=["POST"])
+def predict():
+    file = request.files.get("file")
+    if file is None or not file.filename:
+        return error("No file was uploaded. Please choose an MRI image.", 400)
 
-if __name__ == '__main__':
-    if __name__ == "__main__":
-        app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    # Images are processed in memory and never written to disk.
+    try:
+        img = open_image(file.read())
+    except ValueError as exc:
+        return error(str(exc), 400)
+
+    rejections, warnings = check_input(img)
+    if rejections:
+        return jsonify({
+            "status": "rejected",
+            "message": "This image does not look like a brain MRI slice, so no prediction was made.",
+            "reasons": rejections,
+        }), 422
+
+    result = classifier.predict(img)
+    view = thumbnail(img, 512)
+    heatmap = heatmap_overlay(view, result.pop("cam"))
+
+    if result["confident"]:
+        status, message = "ok", None
+    else:
+        status = "inconclusive"
+        message = (f"The model is not confident (top score {result['confidence'] * 100:.1f}%, "
+                   f"below the {classifier.threshold * 100:.0f}% threshold). "
+                   "Treat this result as inconclusive.")
+    return jsonify({
+        "status": status,
+        "message": message,
+        "warnings": warnings,
+        "prediction": result,
+        "heatmap": to_data_url(heatmap, "JPEG"),
+        "model": {"name": classifier.meta["name"], "description": classifier.meta.get("description", "")},
+    })
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))

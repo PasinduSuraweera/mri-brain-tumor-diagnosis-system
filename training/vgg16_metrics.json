@@ -1,0 +1,16 @@
+{
+  "source": "CNN_brain_tumor_detection.ipynb, Kaggle 'Brain Tumor MRI Dataset' test split (1,311 images)",
+  "caveats": [
+    "Test images had random brightness/contrast augmentation applied during evaluation.",
+    "Class order was taken from os.listdir() in the notebook; the mapping below assumes alphabetical order.",
+    "The dataset is known to contain near-duplicate images across its train/test splits, so these numbers may be optimistic."
+  ],
+  "test_accuracy": 0.96,
+  "per_class": {
+    "glioma": {"precision": 0.94, "recall": 0.96, "f1": 0.95, "support": 300},
+    "meningioma": {"precision": 0.95, "recall": 0.89, "f1": 0.92, "support": 306},
+    "notumor": {"precision": 0.99, "recall": 1.00, "f1": 0.99, "support": 405},
+    "pituitary": {"precision": 0.96, "recall": 0.99, "f1": 0.98, "support": 300}
+  },
+  "confusion_matrix": [[287, 13, 0, 0], [16, 272, 6, 12], [1, 0, 404, 0], [1, 1, 0, 298]]
+}

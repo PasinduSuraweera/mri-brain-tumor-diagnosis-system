@@ -1,0 +1,109 @@
+{
+  "name": "vgg16",
+  "description": "VGG16 transfer-learning model (128x128 input) trained in CNN_brain_tumor_detection.ipynb",
+  "body": "vgg16_body.tflite",
+  "head_weights": "vgg16_head.npz",
+  "head_ops": [
+    {
+      "type": "maxpool2"
+    },
+    {
+      "type": "flatten"
+    },
+    {
+      "type": "dense",
+      "activation": "relu",
+      "w": "dense0_w",
+      "b": "dense0_b"
+    },
+    {
+      "type": "dense",
+      "activation": "linear",
+      "w": "dense1_w",
+      "b": "dense1_b"
+    }
+  ],
+  "input_size": 128,
+  "input_scale": 0.00392156862745098,
+  "resize": "nearest",
+  "labels": [
+    "glioma",
+    "meningioma",
+    "notumor",
+    "pituitary"
+  ],
+  "display_names": [
+    "Glioma",
+    "Meningioma",
+    "No Tumor",
+    "Pituitary"
+  ],
+  "temperature": 1.0,
+  "confidence_threshold": 0.7,
+  "quantization": "int8",
+  "export_check": {
+    "top1_agreement": 1.0,
+    "max_prob_diff": 0.029447585344314575
+  },
+  "metrics": {
+    "source": "CNN_brain_tumor_detection.ipynb, Kaggle 'Brain Tumor MRI Dataset' test split (1,311 images)",
+    "caveats": [
+      "Test images had random brightness/contrast augmentation applied during evaluation.",
+      "Class order was taken from os.listdir() in the notebook; the mapping below assumes alphabetical order.",
+      "The dataset is known to contain near-duplicate images across its train/test splits, so these numbers may be optimistic."
+    ],
+    "test_accuracy": 0.96,
+    "per_class": {
+      "glioma": {
+        "precision": 0.94,
+        "recall": 0.96,
+        "f1": 0.95,
+        "support": 300
+      },
+      "meningioma": {
+        "precision": 0.95,
+        "recall": 0.89,
+        "f1": 0.92,
+        "support": 306
+      },
+      "notumor": {
+        "precision": 0.99,
+        "recall": 1.0,
+        "f1": 0.99,
+        "support": 405
+      },
+      "pituitary": {
+        "precision": 0.96,
+        "recall": 0.99,
+        "f1": 0.98,
+        "support": 300
+      }
+    },
+    "confusion_matrix": [
+      [
+        287,
+        13,
+        0,
+        0
+      ],
+      [
+        16,
+        272,
+        6,
+        12
+      ],
+      [
+        1,
+        0,
+        404,
+        0
+      ],
+      [
+        1,
+        1,
+        0,
+        298
+      ]
+    ]
+  }
+}

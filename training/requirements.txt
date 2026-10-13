@@ -1,0 +1,7 @@
+# Training + export (run on a GPU machine or Google Colab)
+tensorflow==2.18.0
+numpy==2.0.2
+pillow>=11.1.0
+scikit-learn>=1.5
+matplotlib>=3.8
+ai-edge-litert==2.3.0

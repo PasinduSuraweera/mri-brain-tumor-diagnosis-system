@@ -281,6 +281,18 @@
             transition: width 0.3s ease;
         }
 
+
+        .result-card.rejected h2, .result-card.error h2 { color: #f87171; }
+        .result-card.inconclusive h2 { color: #facc15; }
+        .result-card ul { margin: 0.5rem 0 1rem 1.25rem; color: var(--text-secondary); }
+        .prob-row { display: grid; grid-template-columns: 7rem 1fr 3.5rem; gap: 0.75rem; align-items: center; margin: 0.4rem 0; font-size: 0.9rem; }
+        .prob-track { height: 0.6rem; background: #334155; border-radius: 999px; overflow: hidden; }
+        .prob-fill { height: 100%; background: var(--primary-color); }
+        .prob-row.top .prob-fill { background: #34d399; }
+        .prob-value { text-align: right; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+        .image-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+        .image-pair figcaption { font-size: 0.8rem; color: var(--text-secondary); text-align: center; margin-top: 0.25rem; }
+
         @media (max-width: 640px) {
             .header h1 {
                 font-size: 2rem;
@@ -322,9 +334,6 @@
                         <p id="file-name"></p>
                         <span class="remove-file" id="remove-file">Remove</span>
                     </div>
-                    <div class="progress-bar" id="progress-bar">
-                        <div id="progress"></div>
-                    </div>
                 </div>
                 <button type="submit" class="btn-primary" id="submit-btn" disabled>Upload & Analyze</button>
             </form>
@@ -343,14 +352,7 @@
             </div>
         </div>
 
-        {% if result %}
-        <!-- Display Results -->
-        <div class="result-card">
-            <h2>{{ result }}</h2>
-            <p>Confidence: {{ confidence }}</p>
-            <img src="{{ file_path }}" class="result-image" alt="Uploaded MRI Image">
-        </div>
-        {% endif %}
+        <div id="result"></div>
     </div>
 
     <script>
@@ -361,13 +363,11 @@
         const fileName = document.getElementById('file-name');
         const removeFile = document.getElementById('remove-file');
         const submitBtn = document.getElementById('submit-btn');
-        const progressBar = document.getElementById('progress-bar');
-        const progress = document.getElementById('progress');
         const uploadForm = document.getElementById('upload-form');
 
         // Handle file selection (via click or drag-and-drop)
         function handleFileSelect(e) {
-            const file = e.target.files[0] || e.dataTransfer.files[0];
+            const file = (e.dataTransfer ? e.dataTransfer.files : fileInput.files)[0];
             if (file && file.type.startsWith('image/')) {
                 fileName.textContent = file.name;
                 const reader = new FileReader();
@@ -387,8 +387,6 @@
             fileInput.value = '';
             filePreview.style.display = 'none';
             submitBtn.disabled = true;
-            progressBar.classList.remove('active');
-            progress.style.width = '0%';
         }
 
         // Drag-and-drop events
@@ -413,21 +411,72 @@
         // Remove file
         removeFile.addEventListener('click', resetFileInput);
 
-        // Form submission with progress simulation
-        uploadForm.addEventListener('submit', (e) => {
+        const resultBox = document.getElementById('result');
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function renderResult(data) {
+            let html;
+            if (data.status === 'ok' || data.status === 'inconclusive') {
+                const p = data.prediction;
+                const title = data.status === 'inconclusive' ? 'Inconclusive' : (p.has_tumor ? `Tumor: ${p.display}` : 'No Tumor');
+                const bars = p.probabilities.map((c) => `
+                    <div class="prob-row ${c.label === p.label ? 'top' : ''}">
+                        <span>${escapeHtml(c.display)}</span>
+                        <div class="prob-track"><div class="prob-fill" style="width:${(c.probability * 100).toFixed(1)}%"></div></div>
+                        <span class="prob-value">${(c.probability * 100).toFixed(1)}%</span>
+                    </div>`).join('');
+                const notes = [data.message, ...(data.warnings || [])].filter(Boolean);
+                html = `
+                    <div class="result-card ${data.status}">
+                        <h2>${escapeHtml(title)}</h2>
+                        <p>Confidence: ${(p.confidence * 100).toFixed(2)}%</p>
+                        ${notes.length ? `<ul>${notes.map((n) => `<li>${escapeHtml(n)}</li>`).join('')}</ul>` : ''}
+                        ${bars}
+                        <div class="image-pair">
+                            <figure><img src="${previewImage.src}" class="result-image" alt="Uploaded MRI"><figcaption>Uploaded scan</figcaption></figure>
+                            <figure><img src="${data.heatmap}" class="result-image" alt="Grad-CAM heatmap"><figcaption>Grad-CAM: regions that drove the prediction</figcaption></figure>
+                        </div>
+                    </div>`;
+            } else {
+                const reasons = data.reasons || [];
+                html = `
+                    <div class="result-card ${data.status === 'rejected' ? 'rejected' : 'error'}">
+                        <h2>${data.status === 'rejected' ? 'Not an MRI scan?' : 'Something went wrong'}</h2>
+                        <p>${escapeHtml(data.message || 'The image could not be analysed.')}</p>
+                        ${reasons.length ? `<ul>${reasons.map((r) => `<li>${escapeHtml(r)}</li>`).join('')}</ul>` : ''}
+                    </div>`;
+            }
+            resultBox.innerHTML = html;
+            resultBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        uploadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            if (!fileInput.files[0]) return;
             submitBtn.disabled = true;
-            progressBar.classList.add('active');
-            let width = 0;
-            const interval = setInterval(() => {
-                width += 10;
-                progress.style.width = `${width}%`;
-                if (width >= 100) {
-                    clearInterval(interval);
-                    // Actual form submission to backend
-                    uploadForm.submit();
+            submitBtn.textContent = 'Analyzing…';
+            const body = new FormData();
+            body.append('file', fileInput.files[0]);
+            try {
+                const response = await fetch('/api/predict', { method: 'POST', body });
+                let data;
+                try {
+                    data = await response.json();
+                } catch {
+                    data = { status: 'error', message: `Server error (${response.status}). Please try again.` };
                 }
-            }, 200);
+                renderResult(data);
+            } catch {
+                renderResult({ status: 'error', message: 'Could not reach the server. Please check your connection and try again.' });
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Upload & Analyze';
+            }
         });
     </script>
 </body>
