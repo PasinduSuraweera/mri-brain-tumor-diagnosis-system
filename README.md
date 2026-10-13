@@ -3,7 +3,7 @@
 # MRI Brain Tumor Diagnosis System
 
 ![Brain Tumor Detection Banner](https://img.shields.io/badge/AI-Medical%20Imaging-blue?style=for-the-badge)
-![Python](https://img.shields.io/badge/Python-3.8+-green?style=for-the-badge&logo=python)
+![Python](https://img.shields.io/badge/Python-3.11-green?style=for-the-badge&logo=python)
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white)
 ![Jupyter](https://img.shields.io/badge/Jupyter-Notebook-orange?style=for-the-badge&logo=jupyter)
 ![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
@@ -20,29 +20,29 @@
 
 ## Overview
 
-This project harnesses the power of **deep learning** to tackle a critical medical challenge: accurately classifying brain tumors from MRI scans. Built using **transfer learning with the renowned VGG16 architecture**, it classifies tumors into four key categories: **glioma**, **meningioma**, **pituitary**, or **no tumor**. 
+This project harnesses the power of **deep learning** to tackle a critical medical challenge: accurately classifying brain tumors from MRI scans. Built using **transfer learning with the VGG16 architecture**, it classifies tumors into four key categories: **glioma**, **meningioma**, **pituitary**, or **no tumor**. 
 
-Leveraging Python and TensorFlow, this system aims to deliver reliable, interpretable AI diagnostics that can support medical imaging workflows.
+The web app shows class probabilities and Grad-CAM heatmaps for every prediction, rejects images that are not MRI slices, and runs on a lightweight LiteRT runtime.
 
 ## Key Features
 
-**Transfer Learning with VGG16**
-Leveraging the pre-trained VGG16 convolutional base, freezing most layers to retain powerful learned features, while fine-tuning the top layers to specialize the model for brain tumor MRI classification.
+**Explainable predictions**
+Every result shows the probability of all four classes and a **Grad-CAM heatmap** highlighting the regions that drove the prediction, with an opacity slider to compare it with the original scan.
 
-**Custom Image Augmentation**
-To maximize model robustness despite a limited dataset, brightness and contrast adjustments are applied on-the-fly during training, improving the model's ability to generalize.
+**Safer results**
+Uploads that clearly aren't MRI slices (colour photos, blank images, drawings) are rejected instead of being given a tumour label, and low-confidence predictions are reported as **inconclusive** rather than as a diagnosis.
 
-**Dynamic Data Loading & Label Encoding**
-Images are efficiently loaded from organized folder structures, shuffled, and labels encoded dynamically for seamless batch training.
+**Lightweight, fast deployment**
+The web app runs the model with **LiteRT (TensorFlow Lite)**. The convolutional body is an int8 model (~15 MB), and the small classification head runs in NumPy, which also gives exact Grad-CAM gradients. No TensorFlow is needed at runtime: the service uses ~150 MB of RAM (previously ~570 MB) and fits Render's free tier.
 
-**Tailored Model Architecture**
-The core model stacks the VGG16 base (excluding its classification head) with flattening, dropout layers, and fully connected dense layers topped with softmax for multi-class tumor prediction.
+**Secure upload handling**
+Images are processed in memory and never stored. Uploads are size-limited (10 MB), validated, and errors come back as clear messages.
 
-**Thorough Training and Evaluation**
-Training uses the Adam optimizer and sparse categorical cross-entropy loss. The system monitors accuracy and loss trends and validates model performance via detailed classification reports, confusion matrices, and ROC/AUC analyses.
+**Modern interface**
+Drag & drop or click to upload, a background analysis with a loading state, a printable/PDF report, optional one-click sample scans, and an "About the model" panel showing the evaluation metrics and their caveats.
 
-**Model Persistence & Practical Inference**
-After training, the model is saved (`model.h5`) and can predict tumor type and confidence on new MRI images through an easy-to-use inference function.
+**Reproducible training pipeline**
+`training/train.py` retrains the model with sorted class labels, perceptual-hash **de-duplication** (removes train/test leakage), a validation split with early stopping, augmentation, EfficientNetV2/ConvNeXt backbones, clean test evaluation and **temperature-scaling calibration**. It then exports a verified model the app picks up automatically. See [training/README.md](training/README.md).
 
 ## Tech Stack & Libraries
 
@@ -50,245 +50,128 @@ After training, the model is saved (`model.h5`) and can predict tumor type and c
 
 | Technology | Purpose |
 |------------|---------|
-| ![TensorFlow](https://img.shields.io/badge/TensorFlow-FF6F00?style=flat&logo=tensorflow&logoColor=white) | Deep learning model construction, transfer learning, and training |
-| ![Keras](https://img.shields.io/badge/Keras-D00000?style=flat&logo=keras&logoColor=white) | High-level neural networks API |
-| ![Pillow](https://img.shields.io/badge/Pillow-663399?style=flat) | Image preprocessing and augmentation |
-| ![NumPy](https://img.shields.io/badge/NumPy-013243?style=flat&logo=numpy&logoColor=white) | Numerical data manipulation |
-| ![Matplotlib](https://img.shields.io/badge/Matplotlib-11557c?style=flat) | Visualization of training metrics |
-| ![Seaborn](https://img.shields.io/badge/Seaborn-3776AB?style=flat) | Statistical data visualization |
-| ![Scikit-learn](https://img.shields.io/badge/Scikit--learn-F7931E?style=flat&logo=scikit-learn&logoColor=white) | Performance metrics and analytical tools |
-| ![Flask](https://img.shields.io/badge/Flask-000000?style=flat&logo=flask&logoColor=white) | Web application backend |
-| ![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white) | Scripting and automation backbone |
+| ![TensorFlow](https://img.shields.io/badge/TensorFlow-FF6F00?style=flat&logo=tensorflow&logoColor=white) | Model training, transfer learning and export |
+| ![LiteRT](https://img.shields.io/badge/LiteRT-FF6F00?style=flat&logo=tensorflow&logoColor=white) | Lightweight on-server inference |
+| ![Flask](https://img.shields.io/badge/Flask-000000?style=flat&logo=flask&logoColor=white) | Web application and JSON API |
+| ![Gunicorn](https://img.shields.io/badge/Gunicorn-499848?style=flat&logo=gunicorn&logoColor=white) | Production WSGI server |
+| ![NumPy](https://img.shields.io/badge/NumPy-013243?style=flat&logo=numpy&logoColor=white) | Classification head and Grad-CAM |
+| ![Pillow](https://img.shields.io/badge/Pillow-663399?style=flat) | Image decoding and preprocessing |
+| ![Scikit-learn](https://img.shields.io/badge/Scikit--learn-F7931E?style=flat&logo=scikit-learn&logoColor=white) | Evaluation metrics |
+| ![Matplotlib](https://img.shields.io/badge/Matplotlib-11557c?style=flat) | Training plots |
 
 </div>
 
 ## Model Architecture
 
+The deployed model is the VGG16 transfer-learning model trained in `CNN_brain_tumor_detection.ipynb`:
+
 ```
-Input MRI Image (224x224x3)
+Input MRI image (128x128x3, pixels scaled to 0-1)
          ↓
-┌────────────────────────┐
-│   VGG16 Base Model     │
-│   (Pre-trained on      │
-│    ImageNet)           │
-│   - Conv Layers        │
-│   - MaxPooling         │
-│   - (Most layers frozen)│
-└────────────────────────┘
+┌─────────────────────────────┐
+│ VGG16 base (ImageNet)       │  ← runs in LiteRT (int8)
+│ last 3 conv layers trainable│
+└─────────────────────────────┘
+         ↓  block5_conv3 feature map (8x8x512) → used for Grad-CAM
+┌─────────────────────────────┐
+│ MaxPool → Flatten           │  ← runs in NumPy
+│ Dropout (0.3)               │
+│ Dense (128, ReLU)           │
+│ Dropout (0.2)               │
+│ Dense (4) → Softmax         │
+└─────────────────────────────┘
          ↓
-┌────────────────────────┐
-│   Flatten Layer        │
-└────────────────────────┘
-         ↓
-┌────────────────────────┐
-│   Dropout (0.5)        │
-└────────────────────────┘
-         ↓
-┌────────────────────────┐
-│   Dense (256 units)    │
-│   ReLU Activation      │
-└────────────────────────┘
-         ↓
-┌────────────────────────┐
-│   Dropout (0.5)        │
-└────────────────────────┘
-         ↓
-┌────────────────────────┐
-│   Dense (4 units)      │
-│   Softmax Activation   │
-└────────────────────────┘
-         ↓
-    Output Classes:
-    - Glioma
-    - Meningioma
-    - Pituitary
-    - No Tumor
+Glioma · Meningioma · No Tumor · Pituitary
 ```
 
-## Development Workflow
-
-**Data Preparation**
-- Loaded MRI images from well-structured training and testing folders
-- Shuffled datasets and encoded labels dynamically
-- Applied brightness and contrast augmentations in real-time during training to boost robustness
-
-**Model Setup**
-- Initialized VGG16 pretrained on ImageNet without its top layers
-- Froze most layers to preserve pretrained features; unfroze several top layers for targeted fine-tuning
-- Added custom classification layers with dropout and dense connections
-
-**Training**
-- Used a custom data generator for efficient batch processing
-- Trained the model over multiple epochs with the Adam optimizer
-- Tracked and visualized accuracy and loss metrics throughout the training cycle
-
-**Evaluation**
-- Assessed model performance with classification reports and confusion matrices on test data
-- Visualized results through heatmaps and ROC/AUC curves for detailed understanding
-
-**Inference**
-- Preprocessed new MRI images and ran predictions with confidence scoring
-- Presented results alongside input images for interpretability
+Reported test accuracy is **96%** on the Kaggle test split (1,311 images). Because that dataset contains
+near-duplicates across its splits, this number is probably optimistic. Retraining with `training/train.py`
+reports metrics on a de-duplicated split.
 
 ## Installation
 
-Prerequisites
-- Python 3.8 or higher
-- pip package manager
-- Jupyter Notebook
-- (Optional) Virtual environment
+Prerequisites: Python 3.11 and pip.
 
-Setup
-
-1. **Clone the repository**
 ```bash
-git clone https://github.com/PasinduSuraweera/MRI-Brain-Tumor-Diagnosis-System.git
-cd MRI-Brain-Tumor-Diagnosis-System
-```
-
-2. **Create a virtual environment** (recommended)
-```bash
+git clone https://github.com/PasinduSuraweera/mri-brain-tumor-diagnosis-system.git
+cd mri-brain-tumor-diagnosis-system
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. **Install dependencies**
-```bash
+source venv/bin/activate        # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-4. **Launch Jupyter Notebook**
-```bash
-jupyter notebook
-```
-
-## Required Dependencies
-
-Create a `requirements.txt` file with the following packages:
-
-```txt
-tensorflow>=2.10.0
-keras>=2.10.0
-numpy>=1.21.0
-pandas>=1.3.0
-matplotlib>=3.4.0
-seaborn>=0.11.0
-pillow>=8.3.0
-scikit-learn>=0.24.0
-opencv-python>=4.5.0
-flask>=2.0.0
-gunicorn>=20.1.0
-```
+`requirements.txt` only contains what the web app needs. For training, install `training/requirements.txt`.
 
 ## Usage
 
-Training the Model
+**Run the web app**
 
-1. Open the training notebook in Jupyter
-2. Organize your dataset in the following structure:
+```bash
+python main.py                  # development server on http://localhost:5000
+# or, as in production:
+gunicorn main:app --workers 1 --threads 4 --timeout 120
 ```
-data/
-├── Training/
-│   ├── glioma/
-│   ├── meningioma/
-│   ├── pituitary/
-│   └── notumor/
-└── Testing/
-    ├── glioma/
-    ├── meningioma/
-    ├── pituitary/
-    └── notumor/
+
+**Use the API**
+
+```bash
+curl -F "file=@scan.jpg" http://localhost:5000/api/predict
 ```
-3. Run the cells sequentially to train the model
-4. Model checkpoints will be saved as `model.h5`
 
-Making Predictions
+Returns JSON with `status` (`ok`, `inconclusive`, `rejected` or `error`), the top prediction, all class
+probabilities and a Grad-CAM overlay as a data URL. `GET /healthz` is a health check.
 
-**In Jupyter Notebook:**
-```python
-# Load the trained model
-from tensorflow.keras.models import load_model
-from PIL import Image
-import numpy as np
+**Add sample scans**
 
-model = load_model('model.h5')
+Drop a few images named like `glioma_1.jpg` or `notumor_1.jpg` into `static/samples/` and they appear as
+one-click examples on the home page (see `static/samples/README.md`).
 
-# Preprocess and predict
-def predict_tumor(image_path):
-    img = Image.open(image_path).resize((224, 224))
-    img_array = np.array(img) / 255.0
-    img_array = np.expand_dims(img_array, axis=0)
-    
-    prediction = model.predict(img_array)
-    classes = ['Glioma', 'Meningioma', 'No Tumor', 'Pituitary']
-    
-    predicted_class = classes[np.argmax(prediction)]
-    confidence = np.max(prediction) * 100
-    
-    print(f"Prediction: {predicted_class}")
-    print(f"Confidence: {confidence:.2f}%")
-    
-    return predicted_class, confidence
+**Retrain the model**
 
-# Use the function
-predict_tumor('path/to/mri_scan.jpg')
+See [training/README.md](training/README.md). On Google Colab:
+
+```bash
+python training/train.py --data-dir "/content/drive/MyDrive/MRI Images" --export-dir models
 ```
 
 ## Deployment
 
-The system is deployed on **Render** to provide seamless web access. The backend is built using **Flask**, serving the model and handling image uploads smoothly. 
+The app is deployed on **Render**: [https://mri-brain-tumor-diagnosis-system.onrender.com/](https://mri-brain-tumor-diagnosis-system.onrender.com/)
 
-**Live Demo**
-Explore the live application here:
+Render settings (also captured in `render.yaml`):
 
-<div align="center">
+| Setting | Value |
+|---------|-------|
+| Build command | `pip install -r requirements.txt` |
+| Start command | `gunicorn main:app --workers 1 --threads 4 --timeout 120` |
+| Health check path | `/healthz` |
 
-**[https://mri-brain-tumor-diagnosis-system.onrender.com/](https://mri-brain-tumor-diagnosis-system.onrender.com/)**
-
-</div>
-
-Deploying Your Own Instance
-
-1. **Create a Flask Application** (`app.py`)
-2. **Configure `requirements.txt`** with all dependencies
-3. **Create `Procfile`** for Render:
-```
-web: gunicorn app:app
-```
-4. **Deploy to Render**:
-   - Connect your GitHub repository
-   - Configure build settings
-   - Deploy automatically on push
+The free tier sleeps after inactivity, so the first request after a while takes longer. A `Procfile` is
+included for Heroku-style platforms.
 
 ## Project Structure
 
 ```
-MRI-Brain-Tumor-Diagnosis-System/
-│
-├── notebooks/                   # Jupyter notebooks
-│   ├── training.ipynb          # Model training pipeline
-│   ├── evaluation.ipynb        # Model evaluation & metrics
-│   └── inference.ipynb         # Prediction demonstrations
-│
-├── data/                       # Dataset directory
-│   ├── Training/               # Training images
-│   │   ├── glioma/
-│   │   ├── meningioma/
-│   │   ├── pituitary/
-│   │   └── notumor/
-│   └── Testing/                # Testing images
-│       ├── glioma/
-│       ├── meningioma/
-│       ├── pituitary/
-│       └── notumor/
-│
-├── models/                     # Saved models
-│   └── model.h5               # Trained VGG16 model
-│
-├── app.py                      # Flask web application
-├── requirements.txt            # Project dependencies
-├── Procfile                    # Render deployment config
-└── README.md                   # Project documentation
+mri-brain-tumor-diagnosis-system/
+├── main.py                       # Flask app: page, /api/predict, /healthz
+├── inference.py                  # LiteRT body + NumPy head, input checks, Grad-CAM
+├── templates/index.html          # Web interface
+├── static/samples/               # Optional one-click sample scans
+├── models/
+│   ├── model.h5                  # Original Keras model (Git LFS, used for export)
+│   ├── vgg16_body.tflite         # Served conv body (int8)
+│   ├── vgg16_head.npz            # Served classification head weights
+│   └── model_meta.json           # Labels, preprocessing, calibration, metrics
+├── training/
+│   ├── train.py                  # Reproducible training pipeline
+│   ├── export_model.py           # Keras → web-app export with verification
+│   ├── vgg16_metrics.json        # Metrics of the original notebook model
+│   ├── requirements.txt          # Training dependencies
+│   └── README.md
+├── CNN_brain_tumor_detection.ipynb  # Original training notebook
+├── requirements.txt              # Web app dependencies
+├── render.yaml / Procfile        # Deployment config
+└── README.md
 ```
 
 ## Dataset
@@ -322,9 +205,9 @@ This project lays a solid foundation for future AI-driven diagnostic application
 Future Directions
 - Expanding the dataset with more diverse MRI scans
 - Including additional tumor classes and subtypes
-- Implementing explainable AI techniques (Grad-CAM, attention maps)
+- A learned out-of-distribution detector to complement the current input checks
 - Progressing toward clinical deployment and validation
-- Exploring more advanced architectures (ResNet, EfficientNet, Vision Transformers)
+- Exploring Vision Transformers and 3D (volume-level) models
 - Multi-center validation studies
 
 ## Contributing
